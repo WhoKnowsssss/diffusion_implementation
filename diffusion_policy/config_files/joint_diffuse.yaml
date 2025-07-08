@@ -1,0 +1,130 @@
+_target_: diffusion_policy.trainer.offline_trainer.OfflineTrainer
+
+data_collection:
+  name: null
+  record_steps: 1000000
+  noisy_state_clean_action:
+    enable: true
+    std_scale: 1.
+  perturbation_bodies:
+    enable: false
+    force_range: 0.
+    torque_range: 0.
+  perfect_expert_only: true
+  
+
+
+dataloader:
+  batch_size: 128 #256 #128
+  num_workers: 1
+  persistent_workers: true
+  pin_memory: true
+  shuffle: true
+
+val_dataloader:
+  batch_size: 2048
+  num_workers: 1
+  persistent_workers: false
+  pin_memory: true
+  shuffle: false
+
+ema:
+  _target_: diffusion_policy.backbone.ema_model.EMAModel
+  inv_gamma: 1.0
+  max_value: 0.9999
+  min_value: 0.0
+  power: 0.75
+  update_after_step: 0
+
+exp_name: null
+output_dir: "./outputs/"
+dataset_dir: "/home/takaraet/Projects/DiffuseCloC/data/" # "/home/haytham/ProtoMotions/"
+
+logging:
+  group: null
+  id: null
+  mode: online
+  name: 'velocity_loss_1'
+  project: diffuse_cloc
+  resume: true
+  tags:
+  - velocity_1
+  - default
+
+# multi_run:
+#   run_dir: data/outputs/2023.01.16/20.11.42_train_diffusion_transformer_cyber_lowdim
+#   wandb_name_base: 2023.01.16-20.11.42_train_diffusion_transformer_cyber_lowdim
+
+optimizer:
+  betas:
+  - 0.9
+  - 0.95
+  learning_rate: 0.0001
+  weight_decay: 0.001
+
+
+policy:
+  _target_: diffusion_policy.agent.bc_agent.BCAgent
+  actor:
+    _target_: diffusion_policy.modules.diffuse_cloc.DiffuseCLoC
+    backbone:
+      _target_: diffusion_policy.backbone.transformer_codiffuse.Transformer
+      x_horizon: 20  # 36
+      y_horizon: 20
+      x_input_dim: 384 #384 #384 #114 #198 #114 #198 #192 #192 # 198 #204 #192 #201 #192
+      y_input_dim: 29
+      x_output_dim: 384 #384 #384 #114 #198 #114 #198 #192 # 192 #198 #204 #192 #201 #192 
+      y_output_dim: 29
+      n_emb: 256 # 512 # 256 384 512
+      n_head: 4 # 8 # 4 6 8
+      n_layer: 2 #4 # 6 # 4 6 10
+      causal_attn: true
+      x_to_x_attn: full
+      x_to_y_attn: no_attn
+      y_to_x_attn: causal
+      y_to_y_attn: causal
+
+    denoising_steps: 20 # 20
+    predict_epsilon: false
+    denoised_clip_value: 1.0
+    action_weight_schedule: constant-to-8
+    clean_past_state: true
+    clean_past_action: false
+
+    n_past_steps: 4
+    state_emphasis: random_emph_symm
+    state_proj: true
+
+dataset:
+  _target_: diffusion_policy.dataset.g1_offline_dataset.G1_Dataset # AMASS_V5_0 #G1_Dataset
+  horizon: null
+  n_obs_steps: null
+  pad_after: 1
+  pad_before: 1
+  seed: 42
+  val_ratio: 0.02
+  symm_aug: true
+  zarr_path: ankle_limit.zarr #Floating_delay_RightTurn10_rigged_main_ep-500_steps-125_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #Floating_delay_RightTurn10_rigged_main_ep-500_steps-125_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #noise_variable_RightTurn10_rigged_main_ep-500_steps-125_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #0_delay_RightTurn10_rigged_main_ep-500_steps-125_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #ightTurn_125_per_noise.zarr #RightTurn10_rigged_main_ep-500_steps-125_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #rigged_data.zarr #.zarr #yw8yusu6_ep-600_steps-200_noise-0.05_hip-0.2_knee-0.3_ankle-0.4.zarr #yw8yusu6_ep-500_steps-300.zarr #baseline_1000_5sec.zarr # stiff_40_500_5sec.zarr #sim2real_policy_500.zarr #im2real_policy.zarr # high_stiffness_noise_v0.zarr #sixth_noise_.1_.4_.4_.9_actionRate_1e-2.zarr #fifth_noise_.2_.4_.4_.9_actionRate_1e-2.zarr #fourth_test_noise_base_.2_.4_.4_1_.zarr # second_test_noise_base_.2_.4_.4_.5_.zarr #first_test_noise_base_.1_.25_.25_.3_.zarr #recorded_data_14-07-05.zarr
+
+training:
+  checkpoint_every: 10
+  debug: false
+  device: cuda:0
+  gradient_accumulate_every: 1
+  lr_scheduler: cosine
+  lr_warmup_steps: 10000
+  max_train_steps: null
+  max_val_steps: null
+  num_epochs: 1000
+  resume: false
+  resume_path: '/home/takaraet/Projects/DiffuseCloC/outputs/June-24-13-56-45-joint_diffuse' # /home/takaraet/Projects/DiffuseCloC/outputs/June-24-13-54-10-joint_diffuse'
+  rollout_every: 10
+  rollout_steps: 200
+  sample_every: 3
+  seed: 42
+  tqdm_interval_sec: 1.0
+  use_ema: true
+  val_every: 10
+
+checkpoint: 
+  save_last_ckpt: true
